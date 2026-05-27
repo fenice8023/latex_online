@@ -10,46 +10,49 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: texlive/texlive:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install TeX Live 2026
-        uses: teatimeguest/setup-texlive-action@v3
-        with:
-          version: 2026
-          packages: >-
-            scheme-small
-            ltx-talk
-            ctex
-            fandol
-            algorithm2e
-            stix2-otf
-            collection-langchinese
-            collection-latexextra
-
       - name: Show TeX Live version
         run: |
           lualatex --version
-          kpsewhich ltx-talk.cls
+          echo "---"
+          cat /etc/os-release 2>/dev/null || true
+
+      - name: Install required packages via tlmgr
+        run: |
+          tlmgr update --self 2>/dev/null || true
+          tlmgr install ltx-talk 2>/dev/null || true
+          tlmgr install ctex fandol algorithm2e stix2-otf 2>/dev/null || true
+          tlmgr install collection-langchinese 2>/dev/null || true
+          echo "--- Checking ltx-talk ---"
+          kpsewhich ltx-talk.cls || echo "WARNING: ltx-talk.cls not found!"
 
       - name: Compile 1.tex (first pass)
         continue-on-error: true
         run: |
-          lualatex -interaction=nonstopmode 1.tex
+          lualatex -interaction=nonstopmode 1.tex 2>&1 | tail -30
 
       - name: Compile 1.tex (second pass)
         run: |
-          lualatex -interaction=nonstopmode 1.tex
+          lualatex -interaction=nonstopmode 1.tex 2>&1 | tail -30
 
       - name: Compile 1.tex (third pass)
         run: |
-          lualatex -interaction=nonstopmode 1.tex
+          lualatex -interaction=nonstopmode 1.tex 2>&1 | tail -30
 
-      - name: Show log on failure
+      - name: Check PDF and show log on failure
         if: failure()
         run: |
-          tail -80 1.log 2>/dev/null || echo "No log found"
+          echo "=== ltx-talk.cls ==="
+          kpsewhich ltx-talk.cls || echo "NOT FOUND"
+          echo "=== 1.log (last 60 lines) ==="
+          tail -60 1.log 2>/dev/null || echo "No log"
+          echo "=== 1.pdf ==="
+          ls -la 1.pdf 2>/dev/null || echo "PDF NOT GENERATED"
 
       - name: Upload compiled PDF
         uses: actions/upload-artifact@v4
