@@ -24,31 +24,42 @@ jobs:
           tlmgr update --self 2>/dev/null || true
           tlmgr install ltx-talk algorithm2e stix2-otf ctex fandol collection-langchinese 2>/dev/null || true
 
-      - name: Compile 1.tex (first pass)
-        continue-on-error: true
-        run: lualatex -interaction=nonstopmode 1.tex
+      - name: Compile all .tex files
+        run: |
+          find . -name "*.tex" -not -path "./.git/*" | while read f; do
+            dir=$(dirname "$f")
+            name=$(basename "$f" .tex)
+            echo "=== Compiling $f ==="
+            cd "$GITHUB_WORKSPACE/$dir"
+            lualatex -interaction=nonstopmode "$name.tex" || true
+            lualatex -interaction=nonstopmode "$name.tex"
+            lualatex -interaction=nonstopmode "$name.tex"
+            cd "$GITHUB_WORKSPACE"
+          done
 
-      - name: Compile 1.tex (second pass)
-        run: lualatex -interaction=nonstopmode 1.tex
-
-      - name: Compile 1.tex (third pass)
-        run: lualatex -interaction=nonstopmode 1.tex
-
-      - name: Upload PDF artifact
+      - name: Upload all PDFs as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: compiled-pdf
-          path: 1.pdf
+          name: compiled-pdfs
+          path: "**/*.pdf"
           retention-days: 30
 
   pages:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download compiled PDF
+      - name: Download compiled PDFs
         uses: actions/download-artifact@v4
         with:
-          name: compiled-pdf
+          name: compiled-pdfs
+
+      - name: Generate index page
+        run: |
+          echo '<html><head><meta charset="utf-8"><title>LaTeX PDFs</title></head><body><h1>Compiled PDFs</h1><ul>' > index.html
+          for f in *.pdf; do
+            echo "<li><a href=\"$f\">$f</a></li>" >> index.html
+          done
+          echo '</ul></body></html>' >> index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
