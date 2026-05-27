@@ -56,7 +56,8 @@ jobs:
       - name: Generate index page
         run: |
           echo '<html><head><meta charset="utf-8"><title>LaTeX PDFs</title></head><body><h1>Compiled PDFs</h1><ul>' > index.html
-          for f in *.pdf; do
+          find . -name "*.pdf" | sort | while read f; do
+            f="${f#./}"
             echo "<li><a href=\"$f\">$f</a></li>" >> index.html
           done
           echo '</ul></body></html>' >> index.html
