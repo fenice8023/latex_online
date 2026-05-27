@@ -1,0 +1,44 @@
+name: Compile LaTeX with TeX Live 2026
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: texlive/texlive:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show TeX Live version
+        run: |
+          lualatex --version
+          which lualatex
+
+      - name: Compile 1.tex (first pass)
+        run: |
+          cd $GITHUB_WORKSPACE
+          lualatex -interaction=nonstopmode -halt-on-error 1.tex
+
+      - name: Compile 1.tex (second pass for cross-references)
+        run: |
+          cd $GITHUB_WORKSPACE
+          lualatex -interaction=nonstopmode -halt-on-error 1.tex
+
+      - name: Compile 1.tex (third pass for TOC / final)
+        run: |
+          cd $GITHUB_WORKSPACE
+          lualatex -interaction=nonstopmode -halt-on-error 1.tex
+
+      - name: Upload compiled PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-pdf
+          path: 1.pdf
+          retention-days: 30

@@ -1,0 +1,33 @@
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.lof
+*.lot
+*.loa
+*.xdv
+
+# Compiled PDF (keep source only, PDF is built by CI)
+# Uncomment if you don't want to commit PDFs:
+# *.pdf
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
