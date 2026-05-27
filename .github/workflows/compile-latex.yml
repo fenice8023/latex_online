@@ -7,9 +7,6 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,9 +19,7 @@ jobs:
       - name: Install required packages via tlmgr
         run: |
           tlmgr update --self 2>/dev/null || true
-          tlmgr install ltx-talk 2>/dev/null || true
-          tlmgr install ctex fandol algorithm2e stix2-otf 2>/dev/null || true
-          tlmgr install collection-langchinese 2>/dev/null || true
+          tlmgr install ltx-talk algorithm2e stix2-otf 2>/dev/null || true
 
       - name: Compile 1.tex (first pass)
         continue-on-error: true
@@ -41,29 +36,4 @@ jobs:
         with:
           name: compiled-pdf
           path: 1.pdf
-
-  commit:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download compiled PDF
-        uses: actions/download-artifact@v4
-        with:
-          name: compiled-pdf
-
-      - name: Commit PDF to output/
-        run: |
-          mkdir -p output
-          cp 1.pdf output/1.pdf
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/1.pdf
-          if git diff --cached --quiet; then
-            echo "No changes"
-          else
-            git commit -m "Auto: update compiled PDF [skip ci]"
-            git push
-          fi
+          retention-days: 30
