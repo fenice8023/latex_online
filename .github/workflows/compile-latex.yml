@@ -52,3 +52,16 @@ jobs:
           name: compiled-pdf
           path: 1.pdf
           retention-days: 30
+
+      - name: Prepare PDF for GitHub Pages
+        run: |
+          mkdir -p public
+          cp 1.pdf public/
+          echo '<html><head><meta http-equiv="refresh" content="0;url=1.pdf"></head><body><a href="1.pdf">Download PDF</a></body></html>' > public/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          force_orphan: true
