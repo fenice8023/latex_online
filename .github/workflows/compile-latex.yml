@@ -15,9 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: texlive/texlive:latest
+      env:
+        HOME: /root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Show TeX Live version
         run: |
@@ -58,16 +62,19 @@ jobs:
           ls -la 1.pdf 2>/dev/null || echo "PDF NOT GENERATED"
 
       - name: Commit PDF back to repository
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "=== Git remote ==="
+          git remote -v
+          echo "=== Git branch ==="
+          git branch -a
+          echo "=== HEAD ==="
+          git rev-parse HEAD
           mkdir -p output
           cp 1.pdf output/1.pdf
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
           git add output/1.pdf
-          if git diff --staged --quiet; then
+          if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "Auto: update compiled PDF [skip ci]"
