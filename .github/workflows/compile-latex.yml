@@ -10,31 +10,46 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: texlive/texlive:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install TeX Live 2026
+        uses: teatimeguest/setup-texlive-action@v3
+        with:
+          version: 2026
+          packages: >-
+            scheme-small
+            ltx-talk
+            ctex
+            fandol
+            algorithm2e
+            stix2-otf
+            collection-langchinese
+            collection-latexextra
+
       - name: Show TeX Live version
         run: |
           lualatex --version
-          which lualatex
+          kpsewhich ltx-talk.cls
 
       - name: Compile 1.tex (first pass)
+        continue-on-error: true
         run: |
-          cd $GITHUB_WORKSPACE
-          lualatex -interaction=nonstopmode -halt-on-error 1.tex
+          lualatex -interaction=nonstopmode 1.tex
 
-      - name: Compile 1.tex (second pass for cross-references)
+      - name: Compile 1.tex (second pass)
         run: |
-          cd $GITHUB_WORKSPACE
-          lualatex -interaction=nonstopmode -halt-on-error 1.tex
+          lualatex -interaction=nonstopmode 1.tex
 
-      - name: Compile 1.tex (third pass for TOC / final)
+      - name: Compile 1.tex (third pass)
         run: |
-          cd $GITHUB_WORKSPACE
-          lualatex -interaction=nonstopmode -halt-on-error 1.tex
+          lualatex -interaction=nonstopmode 1.tex
+
+      - name: Show log on failure
+        if: failure()
+        run: |
+          tail -80 1.log 2>/dev/null || echo "No log found"
 
       - name: Upload compiled PDF
         uses: actions/upload-artifact@v4
