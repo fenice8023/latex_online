@@ -1,0 +1,473 @@
+\DocumentMetadata{tagging = off}
+
+\documentclass{ltx-talk}
+\usepackage[fontset = fandol]{ctex}
+
+\definecolor{myblue}{rgb}{0.0, 0.1, 0.8}
+\definecolor{myred}{rgb}{0.7, 0.0, 0.1}
+
+
+\usepackage{amsthm}
+\usepackage{amsmath}
+
+\newtheorem*{theorem}{Theorem}
+\newtheorem*{corollary}{Corollary}
+\newtheorem*{lemma}{Lemma}
+\newtheorem*{definition}{Definition}
+\newtheorem*{example}{Example}
+\newtheorem*{remark}{Remark}   % 不编号的 remark
+\newtheorem*{proposition}{Proposition}
+
+
+\usepackage[ruled,vlined]{algorithm2e}
+\SetNlSty{textbf}{\color{myred}}{}
+
+
+
+\pagecolor{green!5}
+
+\title{Online Convex Optimization for \\ Constrained Control of Nonlinear Systems}
+\subtitle{在线凸优化与参考调节器：非线性系统的约束控制}
+\author{Hazhy}
+\institute{Paper Review}
+\date{2026-05-28}
+
+\begin{document}
+\maketitle
+
+% === Slide 1: 论文信息 ===
+\begin{frame}
+\frametitle{论文信息}
+\begin{itemize}
+    \item \textbf{标题：} Online convex optimization for constrained control of nonlinear systems
+    \item \textbf{作者：} Marko Nonhoff, Johannes Köhler, Matthias A. Müller
+    \item \textbf{期刊：} Automatica 188 (2026) 112916
+    \item \textbf{机构：} Leibniz University Hannover \& ETH Zürich
+    \item \textbf{关键词：} Online convex optimization, Control of constrained systems, Nonlinear systems, Dynamic regret, Reference governor
+\end{itemize}
+\end{frame}
+
+% === Slide 2: Motivation ===
+\begin{frame}
+\frametitle{研究动机：为什么需要 OCO + 控制？}
+
+\textbf{核心挑战：}
+\begin{itemize}
+    \item 代价函数 $L_t(x,u)$ 是\textcolor{myred}{时变且先验未知}的
+    \item 系统具有\textcolor{myred}{非线性动力学}和\textcolor{myred}{状态/输入约束}
+    \item 必须在每步仅基于历史信息做出决策
+\end{itemize}
+
+\textbf{现有方法不足：}
+\begin{itemize}
+    \item Nonstochastic Control：仅限于线性系统、扰动抑制
+    \item Feedback Optimization：仅保证渐近约束满足
+    \item 已有 OCO-based 方法：受限于特定算法，regret 界次优
+\end{itemize}
+
+\textbf{本文贡献：} 模块化的 OCO-RG 框架，适用于\textcolor{myblue}{非线性系统}，保证\textcolor{myblue}{严格约束满足}，达到\textcolor{myblue}{最优 regret 界}
+\end{frame}
+
+% === Slide 3: Problem Setup ===
+\begin{frame}
+\frametitle{问题建模：非线性的在线最优控制}
+
+\textbf{非线性动力学系统：}
+\[
+    x_{t+1} = f(x_t, u_t), \qquad t \in \mathbb{N}
+\]
+\begin{itemize}
+    \item $x_t \in \mathbb{R}^n$：系统状态
+    \item $u_t \in \mathbb{R}^m$：控制输入
+\end{itemize}
+
+\textbf{约束条件：}
+\[
+    (x_t, u_t) \in \mathcal{Z}, \qquad t \in \mathbb{N}
+\]
+
+\textbf{在线最优控制问题（OCO 视角）：}
+\[
+    \min_{u_0,\dots,u_T} \sum_{t=0}^{T} L_t(x_t, u_t) \quad \text{s.t.} \; x_{t+1} = f(x_t, u_t),\; (x_t, u_t) \in \mathcal{Z}
+\]
+
+\small
+\textcolor{myblue}{关键难点：} $L_t$ 在第 $t$ 步完成后才被揭示，决策 $u_t$ 只能依赖 $L_0,\dots,L_{t-1}$ 和状态 $x_t$。
+\end{frame}
+
+% === Slide 4: OCO-RG Framework Overview ===
+\begin{frame}
+\frametitle{OCO-RG 框架：三大模块}
+
+\textbf{核心思想：} 将在线优化与约束控制\textcolor{myred}{解耦}，通过模块化设计实现灵活性和理论保证。
+
+\begin{center}
+\fbox{\begin{minipage}{0.85\textwidth}
+\centering
+\textbf{OCO算法} $\; \xrightarrow{r_t} \;$
+\textbf{参考调节器 (RG)} $\; \xrightarrow{v_t} \;$
+\textbf{稳定反馈} $\; \xrightarrow{u_t} \;$
+\textbf{物理系统}
+
+\vspace{3mm}
+\small
+代价函数 $L_{t-1}$ $\uparrow$ \qquad\qquad\qquad\qquad\qquad $\downarrow$ 状态 $x_t$
+\end{minipage}}
+\end{center}
+
+\vspace{3mm}
+\textbf{三大组件：}
+\begin{enumerate}
+    \item \textbf{OCO 算法：} 基于历史代价计算期望参考 $r_t$
+    \item \textbf{参考调节器 (RG)：} 修正 $r_t$ 为 $v_t$，确保约束满足
+    \item \textbf{稳定反馈控制器：} $u_t = g(x_t, v_t)$，跟踪修正后的参考
+\end{enumerate}
+\end{frame}
+
+% === Slide 5: Assumptions ===
+\begin{frame}
+\frametitle{核心假设：稳态映射与稳定性}
+
+\textbf{Assumption 1 —— 稳态映射：}
+\[
+    h(v) = f\bigl(h(v),\, g(h(v), v)\bigr), \quad \forall v \in \mathbb{R}^o
+\]
+\small
+参考输入 $v$ 参数化系统的稳态。线性系统 $f(x,u)=Ax+Bu$ 下：
+$h(v) = (I_n - AK)^{-1}Bv$。\textcolor{myblue}{标准假设，广泛使用。}
+
+\normalsize
+\textbf{Assumption 2 —— Lipschitz 连续性：}
+\[
+    \|f_g(x,v) - f_g(\tilde{x},\tilde{v})\| \le \ell_f \|(x,v) - (\tilde{x},\tilde{v})\|, \quad \text{类似地 } g, h
+\]
+
+\textbf{Assumption 3 —— 指数稳定性：}
+\[
+    \|\phi(x,v,t) - h(v)\| \le c\|x - h(v)\| \rho^t, \quad \rho \in [0,1),\; c \ge 1
+\]
+\small
+\textcolor{myred}{关键保证：} 闭环系统指数收敛到稳态，这是 regret 分析的基础。
+\end{frame}
+
+% === Slide 6: Reference Governor ===
+\begin{frame}
+\frametitle{参考调节器 (RG)：安全屏障}
+
+\textbf{Assumption 4 —— 安全集 $\mathcal{O}$：}
+\[
+    (x,v) \in \mathcal{O} \;\Longrightarrow\; (\phi(x,v,t), v) \in \mathcal{Z}_g,\; \forall t \in \mathbb{N}
+\]
+\small
+$\mathcal{O}$ 是前向不变的：一旦进入，恒定参考信号下永不会违反约束。
+
+\vspace{2mm}
+\textbf{Assumption 5 —— RG 行为：}
+\[
+    \begin{cases}
+        v_t = r_t, & \text{if } r_t \in \mathcal{O}_v(x_t) \\[6pt]
+        \|v_t - v_{t-1}\| \ge \kappa_t, \; \|r_t - v_t\| \le (1 - \delta(\kappa_t))\|r_t - v_{t-1}\|, & \text{otherwise}
+    \end{cases}
+\]
+
+\vspace{2mm}
+\textbf{Scalar RG（最常用）：}
+\[
+    \kappa_t = \arg\max_{\alpha \in [0,1]} \alpha \;\; \text{s.t.} \;\; (x_t, v_{t-1} + \alpha(r_t - v_{t-1})) \in \mathcal{O}
+\]
+\[
+    v_t = v_{t-1} + \kappa_t(r_t - v_{t-1})
+\]
+\end{frame}
+
+% === Slide 7: OCO ===
+\begin{frame}
+\frametitle{OCO 算法：在线跟踪时变最优}
+
+\textbf{稳态代价函数：}
+\[
+    L_t^s(v) := L_t\bigl(h(v),\, g(h(v), v)\bigr)
+\]
+
+\textbf{简化的 OCO 问题：}
+\[
+    \min_{r_0,\dots,r_T \in \mathcal{S}_v} \sum_{t=0}^{T} L_t^s(r_t)
+\]
+\small
+\textcolor{myblue}{关键简化：} 通过稳态映射 $h$，将带动力学的控制问题转化为标准 OCO 问题！
+
+\normalsize
+\textbf{最优参考（benchmark，仅用于分析）：}
+\[
+    \theta_t := \arg\min_{v \in \mathcal{S}_v} L_t^s(v)
+\]
+
+\textbf{Definition 1 —— OCO 的 Dynamic Regret 和 Path Length：}
+\[
+    R_T^{\text{OCO}} := \sum_{t=0}^{T} \bigl[L_t^s(r_t) - L_t^s(\theta_t)\bigr], \qquad
+    R_T^{\text{PL}} := \sum_{t=1}^{T} \|r_t - r_{t-1}\|
+\]
+\small
+\textcolor{myred}{注意：} Path length $R_T^{\text{PL}}$ 在 regret 界中起关键作用！
+\end{frame}
+
+% === Slide 8: Algorithm ===
+\begin{frame}[fragile]
+\frametitle{完整算法：OCO-RG Framework}
+
+\begin{algorithm}[H]
+\caption{The OCO-RG Framework}
+\For{$t \in \mathbb{N}$}{
+    \textbf{Given} measurement $x_t$ \\
+    $r_t = \mathcal{A}_{\text{OCO}}(\mathcal{I}_t)$ \tcp*{OCO 计算期望参考}
+    $v_t = \text{RG}(x_t, r_t)$ \tcp*{RG 修正以确保安全}
+    Apply $u_t = g(x_t, v_t)$ \tcp*{反馈控制器执行}
+}
+\end{algorithm}
+
+\vspace{3mm}
+\textbf{信息集：} $\mathcal{I}_t := \{r_0,\dots,r_{t-1}, L_0,\dots,L_{t-1}\}$
+
+\textbf{模块化优势：}
+\begin{itemize}
+    \item OCO 算法可任意替换（OGD、Frank-Wolfe、二阶方法等）
+    \item RG 可任意替换（Scalar RG、Command Governor 等）
+    \item 控制器可任意替换（满足指数稳定性即可）
+\end{itemize}
+\end{frame}
+
+% === Slide 9: Lyapunov Lemma ===
+\begin{frame}
+\frametitle{辅助工具：Lyapunov 函数与参考变化的影响}
+
+\textbf{Lemma 1 —— Lyapunov 函数存在性：}
+\[
+    \gamma_1\|x - h(v)\| \le V(x, v) \le \gamma_2\|x - h(v)\|
+\]
+\[
+    V(f_g(x,v), v) - V(x,v) \le -\gamma_3\|x - h(v)\|
+\]
+\[
+    |V(x,v) - V(x,\tilde{v})| \le \ell_V \|v - \tilde{v}\|
+\]
+
+\textbf{Lemma 2 —— 参考变化的累积影响：}
+\[
+    V(x_{\tau_2}, v_{\tau_2}) \le \tilde{\rho}^{\tau_2-\tau_1} V(x_{\tau_1}, v_{\tau_1}) + \ell_V \sum_{i=\tau_1+1}^{\tau_2} \|v_i - v_{i-1}\| \tilde{\rho}^{\tau_2-i}
+\]
+\small
+\textcolor{myblue}{物理意义：} 当参考 $v$ 改变时，Lyapunov 函数受两项影响——旧状态的指数衰减 $+$ 参考变化累积。
+\end{frame}
+
+% === Slide 10: Lemma 3 ===
+\begin{frame}
+\frametitle{Lemma 3：平均收敛保证}
+
+\textbf{核心问题：} RG 可能在多步内阻止参考更新（$v_t \neq r_t$），我们需要保证"平均而言"参考在推进。
+
+\textbf{Lemma 3 —— 有限时间平均收敛：}
+\[
+    \exists M \in \mathbb{N},\, \delta \in (0,1] \;\; \text{s.t.} \;\; \prod_{i=t}^{t+M} \bigl(1 - \delta(\kappa_i)\bigr) \le 1 - \delta
+\]
+其中
+\[
+    \kappa_i = \begin{cases}
+        \delta^{-1}(\|v_i - v_{i-1}\|), & \text{if } r_i \neq v_i \\
+        0, & \text{otherwise}
+    \end{cases}
+\]
+\small
+\textcolor{myred}{直觉：} 在任意 $M$ 步窗口内，RG 至少推进了"一定量"的参考更新。这是连接 RG 行为和 OCO 性能的关键桥梁。
+\end{frame}
+
+% === Slide 11: Main Theorem ===
+\begin{frame}
+\frametitle{主定理：Dynamic Regret 上界}
+
+\begin{theorem}
+设 Assumptions 1--6 成立。闭环系统满足约束 $(x_t, u_t) \in \mathcal{Z}$ 对所有 $t \in \mathbb{N}$。且动态 regret 满足：
+\[
+    \boxed{R_T \le C_0 + R_T^{\text{OCO}} + C_{\text{PL}} R_T^{\text{PL}}}
+\]
+其中
+\begin{align*}
+    C_{\text{PL}} &= \ell_s\frac{2M + \delta}{\delta} + \ell(1+\ell_g)\frac{\ell_V}{\gamma_1(1-\tilde{\rho})}, \\[4pt]
+    C_0 &= \ell(1+\ell_g)\frac{\gamma_2}{\gamma_1(1-\tilde{\rho})}\bigl(\|x_0 - h(\theta_0)\| + \ell_h\|v_0 - \theta_0\|\bigr)
+\end{align*}
+\end{theorem}
+
+\small
+\textcolor{myblue}{解释：} 框架的 regret 被 OCO 算法本身的 regret $\mathbf{R_T^{\text{OCO}}}$ 和 path length $\mathbf{R_T^{\text{PL}}}$ \textbf{线性}地控制。常数取决于 RG 的设计参数 $(M,\delta)$ 和控制器收敛速度 $(\tilde{\rho})$。
+\end{frame}
+
+% === Slide 12: Optimality ===
+\begin{frame}
+\frametitle{Proposition 2：线性依赖的\textcolor{myred}{最优性}}
+
+\textbf{问题：} 主定理中 regret 对 $R_T^{\text{OCO}}$ 的线性依赖能否改进为次线性？
+
+\begin{theorem}[Proposition 2]
+对任意控制算法 $u_t = \mathcal{A}(x_0,\dots,x_t, u_0,\dots,u_{t-1}, L_0,\dots,L_{t-1})$ 和任意 OCO 算法 $r_t = \mathcal{A}_{\text{OCO}}(\mathcal{I}_t)$，\textbf{存在}一列强凸且 Lipschitz 连续的代价函数 $L_t$，使得：
+\[
+    R_T(x_0, u_0, \dots, u_T) \ge R_T^{\text{OCO}}(r_0, \dots, r_T)
+\]
+\end{theorem}
+
+\textcolor{myblue}{证明思路：} 选择 $L_t(x, u) = \left\|\begin{bmatrix} x - h(r_t) \\ u - g(h(r_t), r_t) \end{bmatrix}\right\|^2$，则 $L_t^s(r_t) = 0$ 而 $L_t(x_t, u_t) \ge 0$，导致 $R_T \ge R_T^{\text{OCO}}$。
+
+\vspace{2mm}
+\textcolor{myred}{结论：} 线性上界\textbf{不可改进}，是最优的。
+\end{frame}
+
+% === Slide 13: Corollary ===
+\begin{frame}
+\frametitle{推论：Q-线性收敛 OCO 算法}
+
+\textbf{Proposition 1 —— Q-线性收敛 $\implies$ 有界 Path Length：}
+\[
+    \|r_t - \theta_{t-1}\|_S \le \lambda \|r_{t-1} - \theta_{t-1}\|_S, \quad \lambda \in [0,1)
+\]
+$\implies$ $R_T^{\text{OCO}}$ 和 $R_T^{\text{PL}}$ 都线性地被 $\sum \|\theta_t - \theta_{t-1}\|$ 控制。
+
+\begin{corollary}
+若 OCO 算法 Q-线性收敛，则：
+\[
+    \boxed{R_T \le C_0 + (\tilde{C}_{\text{OCO}} + C_{\text{PL}}\tilde{C}_{\text{PL}})\sum_{t=1}^{T} \|\theta_t - \theta_{t-1}\|}
+\]
+\end{corollary}
+
+\small
+\textcolor{myblue}{这是一个最优界！} Li et al. (2019) 证明 $\sum \|\theta_t - \theta_{t-1}\|$ 是 regret 的下界。本文在\textcolor{myred}{非线性约束系统}上达到了与线性系统相同的\textbf{最优界}。
+
+\vspace{2mm}
+满足条件的算法：Projected OGD（弱拟强凸代价）、Prev. Opt. ($\lambda=0$) 等。
+\end{frame}
+
+% === Slide 14: OCO-M ===
+\begin{frame}
+\frametitle{Remark 3：与 OCO with Memory 的联系}
+
+\textbf{OCO-M 问题：} 代价函数可依赖过去 $p$ 步的决策
+\[
+    \min_{\{u_t\}} \sum_{t=0}^{T} L_t(u_{t-p}, \dots, u_t) \quad \text{s.t.} \; u_t \in \mathcal{U}
+\]
+
+\textbf{转化为 OCO-RG 框架：}
+\begin{itemize}
+    \item 定义状态 $x_t = [u_{t-p} \; \cdots \; u_{t-1}]^\top \in \mathbb{R}^{mp}$
+    \item 线性动力学 $x_{t+1} = A x_t + B u_t$（\textcolor{myblue}{天然稳定}）
+    \item RG 退化为 $v_t = r_t$（无额外约束修正）
+    \item 稳态代价 $L_t^s(\nu) = L_t(\nu, \dots, \nu)$
+\end{itemize}
+
+\textbf{得到的 Regret 界：}
+\[
+    R_T^{\text{OCO-M}} \le C_0 + R_T^{\text{OCO}} + C_{\text{PL}} R_T^{\text{PL}}
+\]
+
+\small
+\textcolor{myblue}{意义：} OCO-M 是本文框架的特例。带切换代价 $\|u_t - u_{t-1}\|^2$ 的在线学习问题也被覆盖。
+\end{frame}
+
+% === Slide 15: Numerical ===
+\begin{frame}
+\frametitle{数值实验：非线性化学反应器}
+
+\textbf{系统：} 连续搅拌釜式反应器 (CSTR)，2 维非线性动力学
+\[
+    \begin{bmatrix} \dot{c}_t \\ \dot{T}_t \end{bmatrix} = \begin{bmatrix}
+        \frac{1}{\tau_f}(x_f - c_t) - k c_t e^{-\frac{M}{T_t}} \\[4pt]
+        \frac{1}{\tau_f}(T_f - T_t) + k c_t e^{-\frac{M}{T_t}} - \alpha_f u_t(T_t - x_c)
+    \end{bmatrix}
+\]
+
+\textbf{代价函数：}
+\[
+    L_t(x, u) = q_t\|c_t - c_t^{\text{des}}\|^2 + u^2
+\]
+其中 $q_t \in [50, 250]$ 和 $c_t^{\text{des}} \in [0.25, 0.65]$ 时变且未知。
+
+\textbf{对比实验：}
+\begin{itemize}
+    \item 2 种 OCO 算法：OGD vs.\ Prev. Opt.
+    \item 2 种安全集：$\mathcal{O}_{\text{fix}}$ (常数) vs.\ $\mathcal{O}_{\text{var}}$ (可变)
+\end{itemize}
+\end{frame}
+
+% === Slide 16: Results ===
+\begin{frame}
+\frametitle{实验结果与性能对比}
+
+\begin{center}
+\begin{tabular}{l|c|c}
+\hline
+\textbf{组合} & \textbf{Norm. Regret} & \textbf{计算时间 [$\mu$s]} \\
+\hline
+OGD + $\mathcal{O}_{\text{fix}}$ & 100.00\% & $57 \pm 2$ \\
+OGD + $\mathcal{O}_{\text{var}}$ & 9.85\% & $189 \pm 275$ \\
+Prev. opt. + $\mathcal{O}_{\text{fix}}$ & 99.92\% & $57 \pm 2$ \\
+Prev. opt. + $\mathcal{O}_{\text{var}}$ & 9.85\% & $184 \pm 273$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{关键发现：}
+\begin{itemize}
+    \item $\mathcal{O}_{\text{var}}$（更大安全集）大幅降低 regret，但计算时间略增
+    \item OGD 与精确最优之间性能差异\textcolor{myred}{可忽略}
+    \item 所有组合计算时间均在微秒级，\textcolor{myblue}{适合实时控制}
+    \item \textbf{模块化优势：} 可灵活权衡计算效率与闭环性能
+\end{itemize}
+\end{frame}
+
+% === Slide 17: Conclusion ===
+\begin{frame}
+\frametitle{总结与展望}
+
+\textbf{本文贡献：}
+\begin{enumerate}
+    \item 提出了\textcolor{myblue}{模块化的 OCO-RG 框架}：OCO + RG + 反馈控制
+    \item 适用于\textcolor{myred}{非线性系统}且保证\textcolor{myred}{严格约束满足}
+    \item 不限于特定算法，涵盖几乎所有的 OCO 和 RG
+    \item Regret 上界：$R_T \le C_0 + R_T^{\text{OCO}} + C_{\text{PL}} R_T^{\text{PL}}$
+    \item 证明了线性依赖的\textcolor{myred}{最优性}
+    \item 对 Q-线性收敛算法，达到已知的理论下界
+\end{enumerate}
+
+\textbf{局限性：} 假设系统模型精确已知，无不确定性。
+
+\textbf{未来方向：}
+\begin{itemize}
+    \item 鲁棒化：处理模型不确定性和扰动
+    \item 改进 path length 的 regret 界（次线性？）
+\end{itemize}
+\end{frame}
+
+% === Slide 18: Key Formula Summary ===
+\begin{frame}
+\frametitle{核心公式总结}
+
+\begin{enumerate}
+    \item \textbf{系统动力学：} $x_{t+1} = f(x_t, u_t), \quad (x_t, u_t) \in \mathcal{Z}$
+
+    \item \textbf{闭环：} $u_t = g(x_t, v_t), \quad x_{t+1} = f_g(x_t, v_t)$
+
+    \item \textbf{指数稳定性：} $\|\phi(x,v,t) - h(v)\| \le c\|x - h(v)\|\rho^t$
+
+    \item \textbf{稳态 OCO：} $\min \sum L_t^s(r_t), \quad L_t^s(v) = L_t(h(v), g(h(v), v))$
+
+    \item \textbf{Scalar RG：} $v_t = v_{t-1} + \kappa_t(r_t - v_{t-1}), \;\; \kappa_t = \arg\max_{\alpha \in [0,1]} \alpha \; \text{s.t.} \; (x_t, \ldots) \in \mathcal{O}$
+
+    \item \textbf{Regret 界：} $R_T \le C_0 + R_T^{\text{OCO}} + C_{\text{PL}}R_T^{\text{PL}}$
+
+    \item \textbf{最优 Regret 界：} $R_T \le C_0 + \tilde{C}\sum \|\theta_t - \theta_{t-1}\|$ （Q-线性收敛时）
+\end{enumerate}
+
+\vspace{3mm}
+\begin{center}
+\textcolor{myblue}{\textbf{谢谢！}}
+
+\end{center}
+\end{frame}
+
+\end{document}

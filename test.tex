@@ -4,13 +4,13 @@
 \documentclass{ltx-talk}
 \usepackage[fontset = fandol]{ctex}
 
-\setmainfont{TeX Gyre Termes}
-\setmathfont{STIX Two Math}
+%\setmainfont{TeX Gyre Termes}
+%\setmathfont{STIX Two Math}
 
 
 
 
-
+	
 
 \EditInstance{footer}{std}{
 	color         = black,
@@ -28,12 +28,15 @@
 
 
 % Preamble
-\newtheorem{definition}{\color{myblue}Definition}
-\newtheorem{theorem}{\color{myblue}Theorem}
-\newtheorem{corollary}{\color{myblue}Corollary}
-\newtheorem{remark}{\color{myblue}Remark}
-\newtheorem{example}{\color{myblue}Example} 
-
+\usepackage{amsthm}
+% 在导言区添加
+\newtheorem*{theorem}{Theorem}
+\newtheorem*{corollary}{Corollary}
+\newtheorem*{lemma}{Lemma}
+\newtheorem*{definition}{Definition}
+\newtheorem*{example}{Example}
+\newtheorem*{remark}{Remark}   % 不编号的 remark
+\newtheorem*{proposition}{Proposition}
 
 
 \usepackage[ruled,vlined]{algorithm2e}
@@ -45,8 +48,6 @@
 
 
 
-\usepackage[ruled,vlined]{algorithm2e}
-\SetNlSty{textbf}{\color{red}}{} % Colors line numbers to match the class
 % 3. Define a simple command for Chinese text
 
 %\newfontfamily\zhfont{FandolSong-Regular.otf}[
@@ -87,32 +88,24 @@
 		\begin{itemize}
 			\item \textbf{Riemannian Manifold:} 
 			\item \textbf{Optimization:} 
-			\item  黑暗中海燕
+			\item  黑暗中海燕1
 		\end{itemize}
 		
 		% Test the \ell symbol:
 		The cursive $\ell$ is preserved from the default NewCMSansMath.
 	\end{frame}
+
 	\begin{frame}
-		
+	
+		\begin{proposition}
+			
+		\end{proposition}
 		\begin{definition}
-			A vector $x \in \mathbb{R}^n$ is $s$-sparse if it has at most $s$ non-zero entries.
+			
 		\end{definition}
-		\begin{theorem}
-			A vector $x \in \mathbb{R}^n$ is $s$-sparse if it has at most $s$ non-zero entries.
-		\end{theorem}
-		\begin{description}
-			\item[as]  a test
-		\end{description}
-		\begin{corollary}
-			A vector $x \in \mathbb{R}^n$ is $s$-sparse if it has at most $s$ non-zero entries.
-		\end{corollary}
-		\begin{remark}
-			A vector $x \in \mathbb{R}^n$ is $s$-sparse if it has at most $s$ non-zero entries.
-		\end{remark}
-		\begin{example}
-			静夜思
-		\end{example}
+		\begin{lemma}
+			
+		\end{lemma}
 	\end{frame}
 	
 	
@@ -129,7 +122,8 @@
 	
 	\begin{frame}
 		\frametitle{中文测试}
-		
+		将军不下马，出入平安xasxxasxax
+		你好i 撒CDC四川省成都成都vvvvvvvvvvvvvvvvvvvvvvvcvcvcvc
 	\end{frame}
 	
 	\begin{frame}{Algorithm: Basis Pursuit}
